@@ -1,0 +1,45 @@
+@import "highlight.js/styles/github.css";
+
+.dark .hljs,
+.dark pre code.hljs {
+	background: #1a1b26;
+	color: #c0caf5;
+}
+
+.dark .hljs-comment,
+.dark .hljs-quote {
+	color: #565f89;
+}
+
+.dark .hljs-keyword,
+.dark .hljs-selector-tag,
+.dark .hljs-literal,
+.dark .hljs-name {
+	color: #bb9af7;
+}
+
+.dark .hljs-string,
+.dark .hljs-doctag,
+.dark .hljs-regexp {
+	color: #9ece6a;
+}
+
+.dark .hljs-title,
+.dark .hljs-section,
+.dark .hljs-selector-id {
+	color: #7aa2f7;
+}
+
+.dark .hljs-attr,
+.dark .hljs-attribute,
+.dark .hljs-variable,
+.dark .hljs-template-variable,
+.dark .hljs-type {
+	color: #f7768e;
+}
+
+.dark .hljs-number,
+.dark .hljs-symbol,
+.dark .hljs-bullet {
+	color: #ff9e64;
+}
