@@ -1,8 +1,7 @@
 import { Loader2, CircleCheckBig, CircleMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToggleRead } from "@/hooks";
-import { useState, useRef } from "react";
-import confetti from "canvas-confetti";
+import { useState } from "react";
 
 interface MarkAsReadProps {
 	articleId: number;
@@ -16,20 +15,12 @@ export default function MarkAsRead({
 	className,
 }: MarkAsReadProps) {
 	const [isReadStatus, setIsReadStatus] = useState(readStatus);
-	const buttonRef = useRef<HTMLButtonElement>(null);
 	const toggleRead = useToggleRead();
 	const isLoading = toggleRead.isPending;
 
 	const handleToggleReadStatus = async () => {
 		const newStatus = !isReadStatus;
 		await toggleRead.mutateAsync(articleId);
-
-		if (!isReadStatus && buttonRef.current) {
-			const rect = buttonRef.current.getBoundingClientRect();
-			const x = (rect.left + rect.width / 2) / window.innerWidth;
-			const y = (rect.top + rect.height / 2) / window.innerHeight;
-			confetti({ particleCount: 50, spread: 50, origin: { x, y } });
-		}
 		setIsReadStatus(newStatus);
 	};
 
@@ -41,7 +32,6 @@ export default function MarkAsRead({
 				You have reached the end of the article.
 			</p>
 			<Button
-				ref={buttonRef}
 				onClick={handleToggleReadStatus}
 				variant="outline"
 				className="gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98]"
