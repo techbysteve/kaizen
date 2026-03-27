@@ -1,15 +1,21 @@
 import type { ChangeEvent, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, BookOpen, EyeOff, LoaderCircle, X } from "lucide-react";
+import {
+	ArrowLeft,
+	ArrowRight,
+	BookOpen,
+	EyeOff,
+	LoaderCircle,
+	X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import appLogo from "@/assets/icon.png";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/components/theme-provider";
 import { Input } from "@/components/ui/input";
 import { usersApi } from "@/features/users/api";
-import { userKeys, useCurrentUser } from "@/features/users/hooks";
+import { userKeys, useCurrentUser, useUsers } from "@/features/users/hooks";
 import type { User } from "@/lib/api/client";
 
 function readFileAsDataUrl(file: File) {
@@ -26,37 +32,18 @@ export function OnboardingPage({
 }: {
 	onComplete?: (user: User) => void;
 }) {
-	const { theme } = useTheme();
 	const queryClient = useQueryClient();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const { data: user } = useCurrentUser();
+	const { data: users = [] } = useUsers();
 	const [username, setUsername] = useState(() => user?.username ?? "");
 	const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(
 		() => user?.profilePhotoDataUrl ?? null,
 	);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isProcessingImage, setIsProcessingImage] = useState(false);
-	const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
 	const trimmedUsername = username.trim();
-	const isLightTheme = resolvedTheme === "light";
-
-	useEffect(() => {
-		const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-		const syncTheme = () => {
-			setResolvedTheme(
-				theme === "system" ? (mediaQuery.matches ? "dark" : "light") : theme,
-			);
-		};
-
-		syncTheme();
-		mediaQuery.addEventListener("change", syncTheme);
-
-		return () => {
-			mediaQuery.removeEventListener("change", syncTheme);
-		};
-	}, [theme]);
 
 	const handlePhotoSelection = async (event: ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -110,32 +97,25 @@ export function OnboardingPage({
 		}
 	};
 
+	const hasMultipleUsers = users.length > 1;
+
+	const handleGoBack = async () => {
+		if (!user?.id || hasMultipleUsers) {
+			try {
+				await usersApi.delete(user?.id ?? "");
+			} catch (error) {
+				console.error("Failed to cancel account creation:", error);
+			}
+		}
+		await queryClient.invalidateQueries();
+	};
+
 	return (
-		<main
-			className={`flex min-h-screen w-full flex-col lg:flex-row ${
-				isLightTheme ? "bg-muted/40" : "bg-background"
-			}`}
-		>
-			<section
-				className={`relative flex w-full flex-col justify-center overflow-hidden p-8 lg:w-1/2 lg:p-24 ${
-					isLightTheme
-						? "border-b border-border bg-card lg:border-r lg:border-b-0"
-						: "bg-[oklch(0.13_0.03_272)]"
-				}`}
-			>
-				<div
-					className={`pointer-events-none absolute -left-[10%] -top-[10%] size-96 rounded-full blur-[120px] ${
-						isLightTheme ? "bg-primary/10" : "bg-primary/15"
-					}`}
-				/>
-				<div
-					className={`pointer-events-none absolute -bottom-[10%] right-[10%] size-64 rounded-full blur-[100px] ${
-						isLightTheme ? "bg-secondary/50" : "bg-primary/8"
-					}`}
-				/>
-				{isLightTheme && (
-					<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.4),transparent_45%)]" />
-				)}
+		<main className="flex min-h-screen w-full flex-col lg:flex-row bg-muted/40 dark:bg-background">
+			<section className="relative flex w-full flex-col justify-center overflow-hidden p-8 lg:w-1/2 lg:p-24 border-b border-border bg-card lg:border-r lg:border-b-0 dark:bg-[oklch(0.13_0.03_272)] dark:border-b-0">
+				<div className="pointer-events-none absolute -left-[10%] -top-[10%] size-96 rounded-full blur-[120px] bg-primary/10 dark:bg-primary/15" />
+				<div className="pointer-events-none absolute -bottom-[10%] right-[10%] size-64 rounded-full blur-[100px] bg-secondary/50 dark:bg-primary/8" />
+				<div className="pointer-events-none absolute inset-0 dark:hidden bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.4),transparent_45%)]" />
 
 				<div className="relative z-10 max-w-xl xl:max-w-2xl">
 					<div className="mb-8 inline-flex items-center gap-4">
@@ -161,14 +141,12 @@ export function OnboardingPage({
 						<FeatureRow
 							icon={<BookOpen className="size-5 text-primary" />}
 							title="Intentional Reading"
-							isLightTheme={isLightTheme}
 						>
 							Distraction-free environment for deep work.
 						</FeatureRow>
 						<FeatureRow
 							icon={<EyeOff className="size-5 text-primary/70" />}
 							title="Minimalist Zen"
-							isLightTheme={isLightTheme}
 						>
 							Beautiful editorial layouts that prioritise content.
 						</FeatureRow>
@@ -176,12 +154,22 @@ export function OnboardingPage({
 				</div>
 			</section>
 
-			<section
-				className={`flex w-full flex-col items-center justify-center p-8 lg:w-1/2 lg:p-24 ${
-					isLightTheme ? "bg-muted/20" : "bg-background"
-				}`}
-			>
+			<section className="flex w-full flex-col items-center justify-center p-8 lg:w-1/2 lg:p-24 bg-muted/20 dark:bg-background">
 				<div className="w-full max-w-md">
+					{hasMultipleUsers && (
+						<Button
+							type="button"
+							variant="link"
+							size="icon"
+							onClick={() => {
+								handleGoBack();
+							}}
+							className="ml-5 mb-4 gap-2 text-muted-foreground hover:text-foreground"
+						>
+							<ArrowLeft className="size-4" />
+							Go back
+						</Button>
+					)}
 					<div className="mb-12 text-center lg:text-left">
 						<h2 className="mb-2 text-3xl font-bold text-foreground">
 							Create your profile
@@ -210,11 +198,7 @@ export function OnboardingPage({
 								size="icon-lg"
 								onClick={() => fileInputRef.current?.click()}
 								disabled={isProcessingImage}
-								className={`group relative size-32 overflow-hidden rounded-xl border-dashed p-0 shadow-none hover:border-primary/40 ${
-									isLightTheme
-										? "bg-background hover:bg-background"
-										: "bg-muted hover:bg-muted"
-								}`}
+								className="group relative size-32 overflow-hidden rounded-xl border-dashed p-0 shadow-none hover:border-primary/40 bg-background hover:bg-background dark:bg-muted dark:hover:bg-muted"
 								aria-label="Add a profile image"
 							>
 								{photoDataUrl ? (
@@ -285,9 +269,7 @@ export function OnboardingPage({
 											void handleSubmit();
 										}
 									}}
-									className={`h-12 rounded-xl pl-5 pr-12 shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-primary/40 ${
-										isLightTheme ? "border-border bg-background" : "bg-muted/60"
-									}`}
+									className="h-12 rounded-xl pl-5 pr-12 shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-primary/40 border-border bg-background dark:bg-muted/60"
 								/>
 							</div>
 							<p className="px-1 text-[11px] text-muted-foreground/70">
@@ -300,11 +282,7 @@ export function OnboardingPage({
 								type="submit"
 								size="lg"
 								disabled={isSaving || !trimmedUsername}
-								className={`group w-full py-6 font-bold transition-all duration-300 active:scale-[0.98] ${
-									isLightTheme
-										? "shadow-lg shadow-primary/10"
-										: "shadow-2xl shadow-primary/20"
-								}`}
+								className="group w-full py-6 font-bold transition-all duration-300 active:scale-[0.98] shadow-lg shadow-primary/10 dark:shadow-2xl dark:shadow-primary/20"
 							>
 								{isSaving ? (
 									<>
@@ -328,24 +306,16 @@ export function OnboardingPage({
 
 function FeatureRow({
 	icon,
-	isLightTheme,
 	title,
 	children,
 }: {
 	icon: ReactNode;
-	isLightTheme: boolean;
 	title: string;
 	children: ReactNode;
 }) {
 	return (
 		<div className="flex items-center gap-4">
-			<div
-				className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${
-					isLightTheme
-						? "border border-border bg-background shadow-sm"
-						: "bg-muted/30"
-				}`}
-			>
+			<div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background shadow-sm dark:border-0 dark:bg-muted/30 dark:shadow-none">
 				{icon}
 			</div>
 			<div>

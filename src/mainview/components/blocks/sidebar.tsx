@@ -174,7 +174,6 @@ export function Sidebar() {
 	};
 
 	const getActiveState = (selectedPath: string) => {
-		console.log("pathname", pathname);
 		// My Library: active on "/library" OR any "/read/*" routes
 		if (selectedPath === routes.library) {
 			return (
